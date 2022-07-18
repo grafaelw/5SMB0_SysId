@@ -1,0 +1,76 @@
+function exercise4(data_prbs, G0_prbs, result)
+
+    if result
+        %% create Parametric model fit from non-parametric model and show with cerainty value [%]
+    
+        %Create fit structure found using Ident and choosing structure with are
+        %(on) within the confidence bounds
+        val_r = idinput(1000,'prbs',[0 1/3],[-2 2]);
+        [val_u, val_y] = assignment_sys_12(val_r);
+        val_data = iddata(val_y,val_u);
+        opt = bjOptions('InitialCondition', 'zero', 'Focus', 'prediction' );
+        bj43441 = bj(data_prbs, [4 3 3 4 1], opt);
+        bj43441_val = bj(val_data, [4 3 4 4 1], opt);
+            
+        % Use the compare function to get the certainty value [%] (parametric vs non-parametric)
+        [~,fit] = compare(bj43441, G0_prbs);
+    
+        %Create plot of non-parametric superimposed with parametric model
+        figure
+        bodeplot(G0_prbs)
+        hold on
+        bodeplot(bj43441)
+        legend(strcat('Non-parametric: ',num2str(fit), '%'), 'Parametric BJ(4,3,4,4,1)')
+        grid on
+        
+        % Use the Resid funciton to perform residual test
+        % Resid:  Compute and test residuals
+        [E_test,R_test] = resid(data_prbs, bj43441);
+      
+        % Plot auto and cross correlation of u1 and y1.
+        figure
+        subplot(4,1,1)
+        plot(R_test(:,1,1))
+        grid on
+        title('1-step-ahead prediction errors of autocorrelation u1, for identified model: BJ(4 3 4 4 1)')
+        subplot(4,1,3)
+        plot(R_test(:,1,2))
+        grid on
+        title('1-step-ahead prediction errors of croscorrelation u1 to y1, for identified model: BJ(4 3 4 4 1)')
+        subplot(4,1,4)
+        plot(R_test(:,2,1))
+        grid on
+        title('1-step-ahead prediction errors of croscorrelation y1 to u1, for identified model: BJ(4 3 4 4 1)')
+        subplot(4,1,2)
+        plot(R_test(:,2,2))
+        grid on
+        title('1-step-ahead prediction errors of autocorrelation y1, for identified model: BJ(4 3 4 4 1)')
+        grid on
+        xlabel('lag k')
+        
+        
+        %Create figure of impulse response from u1 to e@y1, manually changed the
+        %confidence value such that all pulse are withtin the colored area. In case
+        %the data change this step must be repeated.
+        figure
+        I = impulseest(E_test);
+        confidence = 99.00;
+        showConfidence(impulseplot(I,20),confidence)
+        title(strcat('Impulse Response with',' confidence: ', num2str(confidence),' %'));
+        grid on
+
+        % Perform the AIC test and print them to the command window:
+        val_nAIC = aic(bj43441,'nAIC');
+        val_nAIC_valid = aic(bj43441_val,'nAIC');
+        val_aic = aic(bj43441,'aic');
+        val_AICc = aic(bj43441,'AICc');
+        val_BIC = aic(bj43441,'BIC');
+
+        fprintf('\nThe normalized Akaikes Information Criterion (AIC) value\n nAIC = %d', val_nAIC);
+        fprintf('\nThe validated normalized Akaikes Information Criterion (AIC) value\n nAIC = %d', val_nAIC_valid);
+        fprintf('\nThe raw AIC value\n aic = %d', val_aic);
+        fprintf('\nThe sample-size corrected AIC value \n AICc = %d', val_AICc);
+        fprintf('\nThe Bayesian Information Criteria (BIC) \n BIC = %d', val_BIC);
+        
+    end
+end
